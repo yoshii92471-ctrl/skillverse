@@ -1,115 +1,243 @@
-
-.
-answer:"Autonomy"
-},
-{
-title:"Level 3: Preschool",
-question:"A child takes initiative and explores new activities.",
-options:["Initiative","Guilt"],
-answer:"Initiative"
-},
-{
-title:"Level 4: School Age",
-question:"Success in learning and school builds?",
-options:["Industry","Inferiority"],
-answer:"Industry"
-},
-{
-title:"Level 5: Adolescence",
-question:"Exploring values and goals develops?",
-options:["Identity","Role Confusion"],
-answer:"Identity"
-},
-{
-title:"Level 6: Young Adult",
-question:"Building meaningful relationships develops?",
-options:["Intimacy","Isolation"],
-answer:"Intimacy"
-},
-{
-title:"Level 7: Adulthood",
-question:"Contributing to society and helping others develops?",
-options:["Generativity","Stagnation"],
-answer:"Generativity"
-},
-{
-title:"Level 8: Older Adult",
-question:"Reflecting positively on life develops?",
-options:["Integrity","Despair"],
-answer:"Integrity"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Rush v1</title>
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#000;
+    font-family:Arial,sans-serif;
+    color:white;
 }
+#game{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    background:linear-gradient(#050510,#0a0a20);
+}
+.lane{
+    position:absolute;
+    top:0;
+    bottom:0;
+    width:33.33%;
+    border-left:1px solid rgba(255,255,255,.1);
+}
+#player{
+    position:absolute;
+    width:60px;
+    height:60px;
+    bottom:80px;
+    background:cyan;
+    border-radius:15px;
+    box-shadow:0 0 20px cyan;
+    transition:left .15s;
+}
+.obstacle{
+    position:absolute;
+    width:60px;
+    height:60px;
+    background:red;
+    border-radius:10px;
+}
+.coin{
+    position:absolute;
+    width:35px;
+    height:35px;
+    background:gold;
+    border-radius:50%;
+    box-shadow:0 0 15px gold;
+}
+#ui{
+    position:absolute;
+    top:10px;
+    left:10px;
+    z-index:10;
+}
+#gameOver{
+    display:none;
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    text-align:center;
+}
+button{
+    padding:12px 20px;
+    font-size:18px;
+}
+</style>
+</head>
+<body>
+
+<div id="game">
+    <div class="lane" style="left:0"></div>
+    <div class="lane" style="left:33.33%"></div>
+    <div class="lane" style="left:66.66%"></div>
+
+    <div id="player"></div>
+
+    <div id="ui">
+        <div>⭐ Score: <span id="score">0</span></div>
+        <div>🪙 Coins: <span id="coins">0</span></div>
+        <div>🏆 High Score: <span id="high">0</span></div>
+    </div>
+
+    <div id="gameOver">
+        <h1>Game Over</h1>
+        <button onclick="restart()">Restart</button>
+    </div>
+</div>
+
+<script>
+const game=document.getElementById("game");
+const player=document.getElementById("player");
+
+const scoreEl=document.getElementById("score");
+const coinsEl=document.getElementById("coins");
+const highEl=document.getElementById("high");
+
+let lane=1;
+let score=0;
+let coins=0;
+let speed=5;
+let running=true;
+
+let highScore=localStorage.getItem("neonHigh")||0;
+highEl.textContent=highScore;
+
+const lanes=[
+window.innerWidth*0.16,
+window.innerWidth*0.5,
+window.innerWidth*0.83
 ];
 
-let current = 0;
-let xp = 0;
+function updatePlayer(){
+player.style.left=(lanes[lane]-30)+"px";
+}
+updatePlayer();
 
-function loadQuestion(){
-
-if(current >= levels.length){
-document.getElementById("question").innerHTML =
-"🏆 Congratulations! You completed Life Quest 2026!";
-document.getElementById("options").innerHTML="";
-document.getElementById("result").innerHTML=
-"Final XP: " + xp;
-document.getElementById("progressBar").style.width="100%";
-return;
+function moveLeft(){
+if(lane>0){lane--;updatePlayer();}
+}
+function moveRight(){
+if(lane<2){lane++;updatePlayer();}
 }
 
-document.getElementById("levelTitle").innerText =
-levels[current].title;
-
-document.getElementById("question").innerText =
-levels[current].question;
-
-let html="";
-
-levels[current].options.forEach(option=>{
-html += `
-<button onclick="checkAnswer('${option}')">
-${option}
-</button>`;
+document.addEventListener("keydown",e=>{
+if(e.key==="ArrowLeft")moveLeft();
+if(e.key==="ArrowRight")moveRight();
 });
 
-document.getElementById("options").innerHTML = html;
+let touchStart=0;
 
-document.getElementById("progressBar").style.width =
-(current/levels.length)*100 + "%";
+document.addEventListener("touchstart",e=>{
+touchStart=e.touches[0].clientX;
+});
+
+document.addEventListener("touchend",e=>{
+let end=e.changedTouches[0].clientX;
+if(end-touchStart>50)moveRight();
+if(touchStart-end>50)moveLeft();
+});
+
+function spawnObstacle(){
+let o=document.createElement("div");
+o.className="obstacle";
+let l=Math.floor(Math.random()*3);
+o.dataset.lane=l;
+o.style.left=(lanes[l]-30)+"px";
+o.style.top="-60px";
+game.appendChild(o);
 }
 
-function checkAnswer(choice){
-
-if(choice === levels[current].answer){
-
-xp += 10;
-
-document.getElementById("xp").innerText = xp;
-
-document.getElementById("knowledge").innerText =
-Number(document.getElementById("knowledge").innerText)+5;
-
-document.getElementById("happiness").innerText =
-Number(document.getElementById("happiness").innerText)+3;
-
-document.getElementById("result").innerHTML =
-"✅ Correct! +10 XP";
-
-}else{
-
-document.getElementById("result").innerHTML =
-"❌ Incorrect. Correct Answer: " +
-levels[current].answer;
+function spawnCoin(){
+let c=document.createElement("div");
+c.className="coin";
+let l=Math.floor(Math.random()*3);
+c.dataset.lane=l;
+c.style.left=(lanes[l]-17)+"px";
+c.style.top="-40px";
+game.appendChild(c);
 }
 
-current++;
+setInterval(()=>{
+if(running) spawnObstacle();
+},1200);
 
-setTimeout(()=>{
-document.getElementById("result").innerHTML="";
-loadQuestion();
-},1500);
+setInterval(()=>{
+if(running) spawnCoin();
+},1800);
+
+function gameLoop(){
+
+if(!running) return;
+
+score++;
+scoreEl.textContent=score;
+
+if(score%500===0) speed+=1;
+
+document.querySelectorAll(".obstacle").forEach(o=>{
+o.style.top=(o.offsetTop+speed)+"px";
+
+if(o.offsetTop>window.innerHeight){
+o.remove();
 }
 
-loadQuestion();
+let py=window.innerHeight-140;
 
+if(
+parseInt(o.dataset.lane)===lane &&
+o.offsetTop>py &&
+o.offsetTop<py+60
+){
+gameOver();
+}
+});
+
+document.querySelectorAll(".coin").forEach(c=>{
+c.style.top=(c.offsetTop+speed)+"px";
+
+if(c.offsetTop>window.innerHeight){
+c.remove();
+}
+
+let py=window.innerHeight-140;
+
+if(
+parseInt(c.dataset.lane)===lane &&
+c.offsetTop>py &&
+c.offsetTop<py+60
+){
+coins++;
+coinsEl.textContent=coins;
+c.remove();
+}
+});
+
+requestAnimationFrame(gameLoop);
+}
+
+function gameOver(){
+running=false;
+
+if(score>highScore){
+highScore=score;
+localStorage.setItem("neonHigh",highScore);
+}
+
+highEl.textContent=highScore;
+document.getElementById("gameOver").style.display="block";
+}
+
+function restart(){
+location.reload();
+}
+
+gameLoop();
 </script>
 
 </body>
